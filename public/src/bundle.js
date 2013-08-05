@@ -33,7 +33,7 @@ OpenLayerController.prototype.initializeMap = function() {
 	
 	this.map.addControl( selector );
     this.map.addLayers( [osm, vector] );
-    this.map.setCenter( center, 6 );
+    this.map.setCenter( center, 5 );
 };
 
 OpenLayerController.prototype.addFeature = function( longitude, latitude, account ) {
