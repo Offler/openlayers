@@ -9,10 +9,14 @@ SockJSLocationReceiver.prototype.retrieveLocations = function( locationListener 
 	
 	sock.onopen = function() {};
 
-	sock.onmessage = function(e) {
-		console.log('message', e.data);
+	sock.onmessage = function( e ) {
+		var locationMessage = JSON.parse( e.data );
 		
-		sock.send("Hello back.");
+		if( locationMessage.Locations_Sent === true ) {
+			locationListener.initializeMap();
+		} else {
+			locationListener.addFeature( locationMessage.Longitude, locationMessage.Latitude, locationMessage.Account );
+		}
 	};
 
 	sock.onclose = function() {};

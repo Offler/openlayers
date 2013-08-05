@@ -1,30 +1,20 @@
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";	
 
-var SockStuff = require("./SockJSService");
 var OpenLayerController = require("./OpenLayerController");
+var SockJSLocationReceiver = require("./SockJSLocationReceiver");
 
 document.addEventListener( "DOMContentLoaded", initApplication );
 
 function initApplication() {
-	console.info( "Init" );
-	
 	var openLayerController = new OpenLayerController( "map" );
+	var sockJSLocationReceiver = new SockJSLocationReceiver( "/locations" );
 	
-	openLayerController.addFeature();
-	openLayerController.addFeature();
-	openLayerController.addFeature();
-	openLayerController.addFeature();
-	openLayerController.addFeature();
-	
-	openLayerController.initializeMap();
+	sockJSLocationReceiver.retrieveLocations( openLayerController );
 }
 
-},{"./OpenLayerController":2,"./SockJSService":3}],2:[function(require,module,exports){
+},{"./OpenLayerController":2,"./SockJSLocationReceiver":3}],2:[function(require,module,exports){
 "use strict";
-
-var latitudes = [52.959512, 52.926655, 51.645713, 53.763569, 52.539406];
-var longitudes = [-1.361333, -1.176569, -3.990298, -1.578982, -1.404062];
 
 var toMercator = OpenLayers.Projection.transforms['EPSG:4326']['EPSG:3857'];
 
@@ -46,11 +36,11 @@ OpenLayerController.prototype.initializeMap = function() {
     this.map.setCenter( center, 6 );
 };
 
-OpenLayerController.prototype.addFeature = function() {
-	var featurePoint = new OpenLayers.Geometry.Point( longitudes.pop(), latitudes.pop() );
+OpenLayerController.prototype.addFeature = function( longitude, latitude, account ) {
+	var featurePoint = new OpenLayers.Geometry.Point( longitude, latitude );
 	var geometry = toMercator( featurePoint );
 	var attributes = {
-            foo : 100 * Math.random() | 0
+            account : account
     };
 	var style = {
             fillColor : '#008040',
@@ -65,14 +55,14 @@ OpenLayerController.prototype.addFeature = function() {
 };
 
 OpenLayerController.prototype._createVectorOverlay = function() {
-	var vector = new OpenLayers.Layer.Vector("Points",{
+	var layerOptions = {
 	    eventListeners:{
 	        'featureselected':function(evt){
 	            var feature = evt.feature;
 	            var popup = new OpenLayers.Popup.FramedCloud("popup",
 	                OpenLayers.LonLat.fromString(feature.geometry.toShortString()),
 	                null,
-	                "<div style='font-size:.8em'>Feature: " + feature.id +"<br>Foo: " + feature.attributes.foo+"</div>",
+	                "<div style='font-size:.8em'>Account: " + feature.attributes.account + "</div>",
 	                null,
 	                true
 	            );
@@ -86,7 +76,9 @@ OpenLayerController.prototype._createVectorOverlay = function() {
 	            feature.popup = null;
 	        }.bind( this )
 	    }
-	});
+	};
+	
+	var vector = new OpenLayers.Layer.Vector( "Points", layerOptions );
 	
 	vector.addFeatures( this.features );
 	
@@ -94,7 +86,7 @@ OpenLayerController.prototype._createVectorOverlay = function() {
 };
 
 OpenLayerController.prototype._createSelectFeatureControl = function( vector ) {
-	return new OpenLayers.Control.SelectFeature(vector,{
+	return new OpenLayers.Control.SelectFeature(vector, {
 	    hover:true,
 	    autoActivate:true
 	}); 
@@ -111,21 +103,29 @@ module.exports = OpenLayerController;
 },{}],3:[function(require,module,exports){
 "use strict";
 
-var sock = new SockJS('/echo');
+function SockJSLocationReceiver( locationServiceUrl ) {
+	this.locationServiceUrl = locationServiceUrl;
+}
 
-sock.onopen = function() {
-	console.log('open');
-};
-
-sock.onmessage = function(e) {
-	console.log('message', e.data);
+SockJSLocationReceiver.prototype.retrieveLocations = function( locationListener ) {
+	var sock = new SockJS( this.locationServiceUrl );
 	
-	sock.send("Hello back.");
+	sock.onopen = function() {};
+
+	sock.onmessage = function( e ) {
+		var locationMessage = JSON.parse( e.data );
+		
+		if( locationMessage.Locations_Sent === true ) {
+			locationListener.initializeMap();
+		} else {
+			locationListener.addFeature( locationMessage.Longitude, locationMessage.Latitude, locationMessage.Account );
+		}
+	};
+
+	sock.onclose = function() {};
 };
 
-sock.onclose = function() {
-	console.log('close');
-};
+module.exports = SockJSLocationReceiver;
 
 },{}]},{},[1])
 ;

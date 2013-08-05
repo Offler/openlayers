@@ -1,8 +1,5 @@
 "use strict";
 
-var latitudes = [52.959512, 52.926655, 51.645713, 53.763569, 52.539406];
-var longitudes = [-1.361333, -1.176569, -3.990298, -1.578982, -1.404062];
-
 var toMercator = OpenLayers.Projection.transforms['EPSG:4326']['EPSG:3857'];
 
 function OpenLayerController( mapHolderId ) {
@@ -23,11 +20,11 @@ OpenLayerController.prototype.initializeMap = function() {
     this.map.setCenter( center, 6 );
 };
 
-OpenLayerController.prototype.addFeature = function() {
-	var featurePoint = new OpenLayers.Geometry.Point( longitudes.pop(), latitudes.pop() );
+OpenLayerController.prototype.addFeature = function( longitude, latitude, account ) {
+	var featurePoint = new OpenLayers.Geometry.Point( longitude, latitude );
 	var geometry = toMercator( featurePoint );
 	var attributes = {
-            foo : 100 * Math.random() | 0
+            account : account
     };
 	var style = {
             fillColor : '#008040',
@@ -42,14 +39,14 @@ OpenLayerController.prototype.addFeature = function() {
 };
 
 OpenLayerController.prototype._createVectorOverlay = function() {
-	var vector = new OpenLayers.Layer.Vector("Points",{
+	var layerOptions = {
 	    eventListeners:{
 	        'featureselected':function(evt){
 	            var feature = evt.feature;
 	            var popup = new OpenLayers.Popup.FramedCloud("popup",
 	                OpenLayers.LonLat.fromString(feature.geometry.toShortString()),
 	                null,
-	                "<div style='font-size:.8em'>Feature: " + feature.id +"<br>Foo: " + feature.attributes.foo+"</div>",
+	                "<div style='font-size:.8em'>Account: " + feature.attributes.account + "</div>",
 	                null,
 	                true
 	            );
@@ -63,7 +60,9 @@ OpenLayerController.prototype._createVectorOverlay = function() {
 	            feature.popup = null;
 	        }.bind( this )
 	    }
-	});
+	};
+	
+	var vector = new OpenLayers.Layer.Vector( "Points", layerOptions );
 	
 	vector.addFeatures( this.features );
 	
@@ -71,7 +70,7 @@ OpenLayerController.prototype._createVectorOverlay = function() {
 };
 
 OpenLayerController.prototype._createSelectFeatureControl = function( vector ) {
-	return new OpenLayers.Control.SelectFeature(vector,{
+	return new OpenLayers.Control.SelectFeature(vector, {
 	    hover:true,
 	    autoActivate:true
 	}); 

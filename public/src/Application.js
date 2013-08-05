@@ -1,20 +1,13 @@
 "use strict";	
 
-var SockStuff = require("./SockJSService");
 var OpenLayerController = require("./OpenLayerController");
+var SockJSLocationReceiver = require("./SockJSLocationReceiver");
 
 document.addEventListener( "DOMContentLoaded", initApplication );
 
 function initApplication() {
-	console.info( "Init" );
-	
 	var openLayerController = new OpenLayerController( "map" );
+	var sockJSLocationReceiver = new SockJSLocationReceiver( "/locations" );
 	
-	openLayerController.addFeature();
-	openLayerController.addFeature();
-	openLayerController.addFeature();
-	openLayerController.addFeature();
-	openLayerController.addFeature();
-	
-	openLayerController.initializeMap();
+	sockJSLocationReceiver.retrieveLocations( openLayerController );
 }
